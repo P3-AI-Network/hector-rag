@@ -141,8 +141,11 @@ class HybridPGVector:
 
 
     
+    def reciprocal_rank_fusion(self, rank1: List[Dict[str,int]], rank2: List[Dict[str,int]], filter_docs: Optional[int] = None) -> List[Document]:
+        texts = self.reciprocal_rank_fusion_ranking(rank1, rank2, filter_docs)
+        return self._fetch_documents(texts)
 
-    def reciprocal_rank_fusions(self, rank1: List[Dict[str,int]], rank2: List[Dict[str,int]], filter_docs: Optional[int]) -> List[str]:
+    def reciprocal_rank_fusion_ranking(self, rank1: List[Dict[str,int]], rank2: List[Dict[str,int]], filter_docs: Optional[int] = None) -> List[str]:
 
         """
             Reco[rpcal rank fusion combines and rerank documents obtained from different searching method
@@ -156,7 +159,7 @@ class HybridPGVector:
                 rrf_score =  1 / (k + rank1) + 1 / (k + rank2) # for document["<document_uid>"] of rank1 and rank2
         """
 
-        if filter_docs > max(len(rank1), len(rank2)):
+        if filter_docs is not None and filter_docs > max(len(rank1), len(rank2)):
             filter_docs = None
 
         combined_score_uid_info = {}
@@ -170,10 +173,7 @@ class HybridPGVector:
         for key in rank2:
             combined_score_uid_info[key] = self._reciprocal_rank_fusion_formula(rank2[key], rank1.get(key, max_document_rank2)) # use max rank as len of rank2 list to remove unfair advantage in long lists
 
-        for key in combined_score_uid_info:
-            print(key, combined_score_uid_info[key])
-
-        sorted_combined_rank = [k for k, v in sorted(combined_score_uid_info.items(), key=lambda item: item[1], reverse=True)] # Get sorted keys according to
+        sorted_combined_rank = [k for k, v in sorted(combined_score_uid_info.items(), key=lambda item: item[1], reverse=True)] # Get sorted keys according to rank
         
         if filter_docs == None:
             return sorted_combined_rank
@@ -388,13 +388,17 @@ if __name__ == "__main__":
     hv = HybridPGVector(connection, embeddings_model, collection_name, {})
 
 
-    # results = hv.kw_search_with_score("What is Decentralized AI ?", 4)
+    rank1 = hv.kw_search_with_ranking("What is Decentralized AI ?", 4)
+    rank2 = hv.similarity_search_with_ranking("What is Decentralized AI ?", 4)
+    combined = hv.reciprocal_rank_fusion(rank1,rank2)
+
+    print(combined)
 
     # a = {'7f739b6a-0614-4f12-a7d3-646d0b00648d': 1}
 
     # results = hv._fetch_documents(list(a.keys()))
     # print(results)
-    hv.add_documents(documents)
+    # hv.add_documents(documents)
 
 
 
