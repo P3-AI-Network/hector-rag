@@ -12,6 +12,9 @@ from dataclasses import dataclass
 from langchain_core.documents import Document
 from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_core.embeddings import Embeddings
+from langchain_experimental.graph_transformers import LLMGraphTransformer
+from langchain_community.graphs.networkx_graph import NetworkxEntityGraph
+from langchain.prompts import PromptTemplate
 
 class PGConnection(TypedDict):
     user: str
@@ -20,7 +23,7 @@ class PGConnection(TypedDict):
     port: int
     dbname: str
 
-class HybridPGVector:
+class Hector:
 
     def __init__(self, connection: PGConnection, embeddings: Embeddings, collection_name: str, collection_metada: dict) -> None:
 
@@ -229,20 +232,6 @@ class HybridPGVector:
         and `langchain_pg_embedding` with appropriate datatypes.
         """
 
-        check_table_pg_collection_sql = """
-            SELECT 
-                EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'langchain_pg_collection'),
-                EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'langchain_pg_embedding');
-        """
-        self.cursor.execute(check_table_pg_collection_sql)
-        check_table_pg_collection_exists, check_table_pg_embedding_exists = self.cursor.fetchone()
-
-        logging.info(f"table langchain_pg_collection exists = {check_table_pg_collection_exists}")
-        logging.info(f"table langchain_pg_embedding exists = {check_table_pg_embedding_exists}")
-
-        if check_table_pg_collection_exists and check_table_pg_embedding_exists:
-            return  # Tables already exist, no need to create them
-
         create_tables_sql = f"""
             BEGIN;
             CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -278,9 +267,11 @@ class HybridPGVector:
 
             COMMIT;
         """
-
-        self.cursor.execute(create_tables_sql)
-        logging.info("Tables created or already exist")
+        try:
+            self.cursor.execute(create_tables_sql)
+            logging.info("Initial tables created")
+        except:
+            logging.info("Initial tables already exists")
 
             
 
@@ -346,12 +337,178 @@ class HybridPGVector:
 
 
 
+class GraphRag:
+
+    def __init__(self, hector: Hector, llm):
+        
+        self.hector = hector
+        self.llm = llm
+        self.llm_transformer = LLMGraphTransformer(llm=llm)
+        self.graph = NetworkxEntityGraph()
+
+        self.entity_creation_prompt = PromptTemplate(
+            input_variables=["question"],
+            template="""
+                You are an entity extraction assistant. Your task is to extract and return only named entities (people, organizations, events, places) from the given text.
+                Instructions:
+                Extract only relevant named entities such as people, organizations, events, and places.
+                Do not include common nouns, generic words, or unnecessary phrases.
+                Maintain the exact spelling and capitalization as in the input text.
+                Output format: If there is one entity, return:
+                Entity1
+                If there are multiple entities, return:
+                Entity1, Entity2, Entity3
+                Do not add extra words, explanations, or change the format in any way.
+                Examples:
+                Input: "Racer World Championship is happening and Ankit Kokane and Prathmesh Muthkure are participating."
+                Output: Racer World Championship, Ankit Kokane, Prathmesh Muthkure
+
+                Input: "Who is Alice Johnson and it's a very sunny day so Swapnil Shinde is very happy about it."
+                Output: Alice Johnson, Swapnil Shinde
+
+                Input: "Ethereum Foundation and Vitalik Buterin are working on new blockchain innovations."
+                Output: Ethereum Foundation, Vitalik Buterin
+
+                Now, extract named entities from the following text:
+                "{question}"
+            """
+        )
+
+        self._create_graph_table()
+
+    def _create_graph_table(self):
+
+        sql = """
+            CREATE EXTENSION IF NOT EXISTS vector;
+
+            CREATE TABLE nodes (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                name TEXT UNIQUE NOT NULL,
+                type TEXT
+            );
+
+            CREATE TABLE edges (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                source_id UUID REFERENCES nodes(id),
+                target_id UUID REFERENCES nodes(id),
+                relationship TEXT NOT NULL
+            );
+        """
+        try:
+            self.hector.cursor.execute(sql, (self.hector.embedding_dimension, ))
+            logging.info("Graph entity tables created")
+        except:
+            logging.info("Graph entity tables already exists")
+
+
+
+    def add_documents(self, documents: List[Document]):
+
+        """
+            Adds documents to vector store then updates the instance graph entity
+        """
+
+        graph_documents = self.llm_transformer.convert_to_graph_documents(documents)
+
+        nodes = [(node.id, node.type) for node in graph_documents[0].nodes]
+
+        psycopg2.extras.execute_values(
+            self.hector.cursor, 
+            "INSERT INTO nodes (name, type) VALUES %s ON CONFLICT (name) DO NOTHING", 
+            nodes
+        )
+
+        logging.info("All Nodes Inserted successfully!")
+
+
+        sql = """
+            INSERT INTO edges (source_id, target_id, relationship)
+            VALUES (
+                (SELECT id FROM nodes WHERE name = %s),
+                (SELECT id FROM nodes WHERE name = %s),
+                %s
+            );
+        """
+
+        edges = [
+            (
+                edge.source.id,
+                edge.target.id,
+                edge.type
+            ) for edge in graph_documents[0].relationships
+        ]
+
+        psycopg2.extras.execute_batch(self.hector.cursor, sql, edges)
+        logging.info("All Edges Inserted successfully!")
+
+    def load_graph(self, batch_size: int = 1000):
+
+
+        # load nodes 
+        self.hector.cursor.execute("SELECT name FROM nodes;")
+
+        while True:
+
+            rows = self.hector.cursor.fetchmany(batch_size)
+            if not rows:
+                break
+            
+            for row in rows:
+                self.graph.add_node(row[0])
+
+        logging.info("All Nodes loaded")
+    
+        self.hector.cursor.execute("""
+            SELECT 
+                n1.name AS source_name, 
+                n2.name AS target_name, 
+                e.relationship
+            FROM edges e
+            JOIN nodes n1 ON e.source_id = n1.id
+            JOIN nodes n2 ON e.target_id = n2.id;
+        """)
+
+        while True:
+
+            rows = self.hector.cursor.fetchmany(batch_size)
+            if not rows:
+                break
+            
+            for row in rows:
+                self.graph._graph.add_edge(
+                    row[0],
+                    row[1],
+                    relation=row[2]
+                )
+
+        logging.info("All Edges loaded")
+        logging.info("Graph Loaded!")
+
+    def get_relevant_documents(self, query: str):
+        question = self.entity_creation_prompt.format(question=query)
+        response = self.llm(question)
+        entities = response.content.split(",")
+        print(type(response.content))
+        print(entities)
+        print(len(entities))
+        if len(entities) == 0:
+            entities = response.content
+
+        information_list = sum([self.graph.get_entity_knowledge(entity.strip()) for entity in entities], [])
+        documents = [Document(page_content=information) for information in information_list]
+        return documents
+    
+    def print_graph(self):
+        logging.info(self.graph._graph.edges)
+    
+
 if __name__ == "__main__":  
 
     from dotenv import load_dotenv
     from langchain_openai.embeddings import OpenAIEmbeddings
     from langchain.document_loaders import TextLoader
     from langchain.text_splitter import CharacterTextSplitter
+    from langchain_openai import ChatOpenAI
 
     load_dotenv()
 
@@ -383,22 +540,32 @@ if __name__ == "__main__":
         "dbname":os.getenv("DB_NAME")
     }
 
+    llm = ChatOpenAI(model="gpt-3.5-turbo")
     embeddings_model = OpenAIEmbeddings(model="text-embedding-3-small")
     collection_name = "new_collection_1"
-    hv = HybridPGVector(connection, embeddings_model, collection_name, {})
+    hv = Hector(connection, embeddings_model, collection_name, {})
 
+    gr = GraphRag(hector=hv, llm=llm)
 
-    rank1 = hv.kw_search_with_ranking("What is Decentralized AI ?", 4)
-    rank2 = hv.similarity_search_with_ranking("What is Decentralized AI ?", 4)
-    combined = hv.reciprocal_rank_fusion(rank1,rank2)
+    # rank1 = hv.kw_search_with_ranking("What is Decentralized AI ?", 4)
+    # rank2 = hv.similarity_search_with_ranking("What is Decentralized AI ?", 4)
+    # combined = hv.reciprocal_rank_fusion(rank1,rank2)
 
-    print(combined)
+    # print(combined)
 
     # a = {'7f739b6a-0614-4f12-a7d3-646d0b00648d': 1}
 
     # results = hv._fetch_documents(list(a.keys()))
     # print(results)
     # hv.add_documents(documents)
+    # gr.add_documents(documents)
+    gr.load_graph()
+    gr.print_graph()
+    while True:
+        query = input("Enter Question: ")
+
+        documents = gr.get_relevant_documents(query)
+        print(documents)
 
 
 
