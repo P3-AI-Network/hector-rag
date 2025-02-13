@@ -198,7 +198,7 @@ class HybridPGVector:
             insert_data.append((self.collection_uuid, embedding, doc.page_content, json.dumps(doc.metadata), str(uuid4())))
 
         psycopg2.extras.execute_values(self.cursor, sql, insert_data, template="(%s, %s, %s, %s, %s)")
-        logging.info("Document Inserted!")
+        logging.info("Documents Inserted!")
 
 
     @staticmethod
@@ -303,10 +303,10 @@ class HybridPGVector:
         self.cursor.execute(sql, (self.collection_name,))
         exists = self.cursor.fetchone()
 
-        logging.info(f"Collection {self.collection_name} exists with uuid {exists[0]}")
 
         if exists:
             self.collection_uuid = exists[0]
+            logging.info(f"Collection {self.collection_name} exists with uuid {exists[0]}")
             return
 
         sql = """
@@ -388,13 +388,13 @@ if __name__ == "__main__":
     hv = HybridPGVector(connection, embeddings_model, collection_name, {})
 
 
-    results = hv.kw_search_with_score("What is Decentralized AI ?", 4)
+    # results = hv.kw_search_with_score("What is Decentralized AI ?", 4)
 
     # a = {'7f739b6a-0614-4f12-a7d3-646d0b00648d': 1}
 
     # results = hv._fetch_documents(list(a.keys()))
-    print(results)
-    # hv.add_documents(documents)
+    # print(results)
+    hv.add_documents(documents)
 
 
 
