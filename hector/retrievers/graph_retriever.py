@@ -148,7 +148,7 @@ class GraphRetriever(BaseRetriever):
 
         information_list = sum([self.graph.get_entity_knowledge(entity.strip()) for entity in entities], [])
         documents = [Document(page_content=information) for information in information_list]
-        return documents[:limit_documents]
+        return documents[:document_limit]
     
     def print_graph(self):
         logging.info(self.graph._graph.edges)
