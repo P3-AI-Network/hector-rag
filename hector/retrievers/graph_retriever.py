@@ -15,16 +15,17 @@ from hector.core.base import BaseRetriever
 
 class GraphRetriever(BaseRetriever):
 
-    def __init__(self, cursor: cursor, llm):
+    def __init__(self, cursor: cursor, llm, weight: float):
         
         self.cursor = cursor
         self.llm = llm
         self.llm_transformer = LLMGraphTransformer(llm=llm)
         self.graph = NetworkxEntityGraph()
 
-        self.entity_creation_prompt = EXTITY_EXTRACTION_PROMPT_TEMPLATE
+        self.weight = weight
 
-        self._create_graph_table()
+        self.entity_creation_prompt = EXTITY_EXTRACTION_PROMPT_TEMPLATE
+        self.init_tables()
 
     def init_tables(self):
 
@@ -135,6 +136,9 @@ class GraphRetriever(BaseRetriever):
         logging.info("Graph Loaded!")
 
     def get_relevant_documents(self, query: str, document_limit: int):
+
+        document_limit = int( document_limit * self.weight )
+
         question = self.entity_creation_prompt.format(question=query)
         response = self.llm(question)
         entities = response.content.split(",")
@@ -144,7 +148,7 @@ class GraphRetriever(BaseRetriever):
 
         information_list = sum([self.graph.get_entity_knowledge(entity.strip()) for entity in entities], [])
         documents = [Document(page_content=information) for information in information_list]
-        return documents
+        return documents[:limit_documents]
     
     def print_graph(self):
         logging.info(self.graph._graph.edges)
