@@ -16,6 +16,9 @@ from langchain_experimental.graph_transformers import LLMGraphTransformer
 from langchain_community.graphs.networkx_graph import NetworkxEntityGraph
 from langchain.prompts import PromptTemplate
 
+from semantic_router.encoders import BaseEncoder
+from semantic_chunkers.chunkers import ConsecutiveChunker
+
 class PGConnection(TypedDict):
     user: str
     password: str
@@ -501,6 +504,8 @@ class GraphRag:
     def print_graph(self):
         logging.info(self.graph._graph.edges)
     
+
+
 
 if __name__ == "__main__":  
 

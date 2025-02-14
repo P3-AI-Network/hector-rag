@@ -8,5 +8,6 @@ is a Hybrid RAG module and pipeline for implementing modular hybrid rag using pg
 - Keyword Search 
 - Graph RAG 
 - Document Ranking 
+- Implement semantic chunking
 
 all using single module
