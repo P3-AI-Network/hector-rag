@@ -14,15 +14,12 @@ from core.base import BaseRetriever
 
 class KeywordRetriever(BaseRetriever):
 
-    def __init__(self, cursor: cursor, embeddings: Embeddings, weight: float):
+    def __init__(self, cursor: cursor, embeddings: Embeddings):
         self.cursor = cursor
         self.embeddings = embeddings
-        self.weight = weight
 
     def get_relevant_documents(self, query: str, document_limit: int) -> List[Document]:
-        
-        document_limit = int( document_limit * self.weight )
-        
+                
         doc_ranking = self.kw_search_with_ranking(query, document_limit)
         docs = doc_ranking.keys()
         return fetch_documents(list(docs))[:document_limit]

@@ -13,18 +13,16 @@ from utils.base import fetch_documents, rank_keywords
 from core.base import BaseRetriever
 
 
-class SimilarityRetriever(BaseRetriever):
+class SemanticRetriever(BaseRetriever):
 
-    def __init__(self, cursor: cursor, embeddings: Embeddings, embeddings_dimention: int, weight: float):
+    def __init__(self, cursor: cursor, embeddings: Embeddings, embeddings_dimention: int):
         self.cursor = cursor
         self.embeddings = embeddings
         self.embeddings_dimention = embeddings_dimention
-        self.weight = weight
 
 
     def get_relevant_documents(self, query: str, document_limit: int) -> List[Document]:
         
-        document_limit = int(document_limit * self.weight)
         doc_ranking = self.similarity_search_with_ranking(query, document_limit)
         docs = doc_ranking.keys()
         return fetch_documents(list(docs))[:document_limit]
