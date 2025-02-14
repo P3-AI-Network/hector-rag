@@ -1,3 +1,6 @@
+
+![Hector-](https://github.com/user-attachments/assets/05707bb7-2c4d-42f0-9397-d950308623ba)
+
 # Hector RAG
 
 A modular and extensible RAG (Retrieval Augmented Generation) package built on PostgreSQL vector database, offering advanced retrieval methods and fusion capabilities.
