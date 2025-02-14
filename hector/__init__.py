@@ -1,4 +1,4 @@
-from hector.store import SimilaritySearch, KeywordSearch, GraphSearch
+from hector.retrievers import SimilarityRetriever, KeywordRetriever, GraphRetriever
 from hector.core.base import PGConnection
 
 

@@ -10,7 +10,7 @@ class PGConnection(TypedDict):
     dbname: str
 
 
-class SearchStore(ABC):
+class BaseRetriever(ABC):
 
     @abstractmethod
     def get_relevant_documents(self,query: str, document_limit: int) -> List[Document]:

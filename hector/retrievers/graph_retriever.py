@@ -11,9 +11,9 @@ from langchain.prompts import PromptTemplate
 
 from prompts.templates import EXTITY_EXTRACTION_PROMPT_TEMPLATE
 
-from hector.core.base import SearchStore
+from hector.core.base import BaseRetriever
 
-class GraphSearch(SearchStore):
+class GraphRetriever(BaseRetriever):
 
     def __init__(self, cursor: cursor, llm):
         
