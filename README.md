@@ -1,5 +1,4 @@
-
-![Hector-](https://github.com/user-attachments/assets/05707bb7-2c4d-42f0-9397-d950308623ba)
+<img src="https://github.com/user-attachments/assets/05707bb7-2c4d-42f0-9397-d950308623ba" width="200" height="100" alt="Alt text">
 
 # Hector RAG
 
