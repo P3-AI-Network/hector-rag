@@ -19,7 +19,7 @@ class BaseRetriever(ABC):
             self,
             cursor: Optional[cursor], 
             embeddings: Optional[Embeddings] = None, 
-            embeddings_dimention: Optional[int] = None, 
+            embeddings_dimension: Optional[int] = None, 
             collection_uuid: Optional[str] = None,
             llm: Optional[any] = None,
             **kwargs
@@ -27,7 +27,7 @@ class BaseRetriever(ABC):
         
         self.cursor = cursor
         self.embeddings = embeddings
-        self.embeddings_dimention = embeddings_dimention
+        self.embeddings_dimension = embeddings_dimension
         self.collection_uuid = collection_uuid
         self.llm = llm
 
