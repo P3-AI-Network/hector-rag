@@ -1,0 +1,62 @@
+import os
+import logging
+
+# from dotenv import load_dotenv
+from hector_rag import Hector
+from hector_rag.retrievers import GraphRetriever, SemanticRetriever, KeywordRetriever
+
+from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain.text_splitter import CharacterTextSplitter
+from langchain_openai import ChatOpenAI
+from langchain.chains.retrieval_qa.base import RetrievalQA
+logging.basicConfig(
+    level=logging.INFO,  # Set the minimum log level
+    format="%(asctime)s - %(levelname)s - %(message)s",  # Log format
+)
+
+# load_dotenv()
+
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
+
+connection = {
+        "user":os.getenv("DB_USER"),
+        "password":os.getenv("DB_PASSWORD"),
+        "host":os.getenv("DB_HOST"),
+        "port":os.getenv("DB_PORT"),
+        "dbname":os.getenv("DB_NAME")
+    }
+
+llm = ChatOpenAI(model="gpt-3.5-turbo")
+logging.info("llm")
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+collection_name = "new_collection_1"
+
+hc = Hector(connection,embeddings, collection_name, {})
+sr = SemanticRetriever()
+
+gr = GraphRetriever(llm=llm)
+
+kw = KeywordRetriever()
+
+
+hc.add_retriever(sr)
+
+
+hc.add_retriever(gr)
+
+
+hc.add_retriever(kw)
+
+
+# docs = hc.get_relevant_documents("What is  Decentralized AI ?", document_limit=10)
+
+# print(docs)
+
+while True:
+
+    query = str(input("Enter query: "))
+    resp = hc.invoke(llm,query)
+    print(resp)

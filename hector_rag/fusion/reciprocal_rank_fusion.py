@@ -1,7 +1,7 @@
 
 from typing import List, Dict, Optional
 from langchain_core.documents import Document
-from utils.base import fetch_documents
+from hector_rag.utils.base import fetch_documents
 
 
 class ReciprocralRankFusion:

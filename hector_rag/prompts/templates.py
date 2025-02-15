@@ -27,3 +27,21 @@ EXTITY_EXTRACTION_PROMPT_TEMPLATE = PromptTemplate(
                 "{question}"
             """
         )
+
+
+HECTOR_QNA_PROMPT_TEMPLATE = PromptTemplate(
+            input_variables=["context", "question"],
+            template="""
+                You are a question answer expert!
+                given below a question and knoweledge documents, read the knoweledge documents carefully 
+                and answer the question. Question can have multiple subquestions so break then and answer them correctly.
+
+                The documents may contain responses from Semantic search, Keyword Search and Graph Search so read them carefully.
+
+                Knoweledge Documents (Context):
+                {context}
+
+                Question:
+                {question}
+            """
+        )

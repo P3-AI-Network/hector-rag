@@ -1,8 +1,9 @@
 [tool.poetry]
-name = "hector-rag"
+name = "hector_rag"
 version = "0.1.0"
 description = "Advance hybrid rag imeplementation using Postgresql Vector DB"
 authors = ["Swapnil Shinde <swapnilshinde9382@gmail.com>"]
+packages = [{include = "hector_rag"}]
 license = "MIT"
 readme = "README.md"
 
@@ -90,6 +91,9 @@ uritemplate = "4.1.1"
 urllib3 = "2.3.0"
 yarl = "1.18.3"
 zstandard = "0.23.0"
+setuptools = "^75.8.0"
+wheel = "^0.45.1"
+twine = "^6.1.0"
 
 
 [build-system]

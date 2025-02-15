@@ -515,6 +515,9 @@ if __name__ == "__main__":
     from langchain.text_splitter import CharacterTextSplitter
     from langchain_openai import ChatOpenAI
 
+    from hector_rag.hector import Hector
+    from hector_rag.retrievers import SemanticRetriever, KeywordRetriever, GraphRetriever
+
     load_dotenv()
 
     os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
@@ -548,9 +551,9 @@ if __name__ == "__main__":
     llm = ChatOpenAI(model="gpt-3.5-turbo")
     embeddings_model = OpenAIEmbeddings(model="text-embedding-3-small")
     collection_name = "new_collection_1"
-    hv = Hector(connection, embeddings_model, collection_name, {})
+    # hv = Hector(connection, embeddings_model, collection_name, {})
 
-    gr = GraphRag(hector=hv, llm=llm)
+    # gr = GraphRag(hector=hv, llm=llm)
 
     # rank1 = hv.kw_search_with_ranking("What is Decentralized AI ?", 4)
     # rank2 = hv.similarity_search_with_ranking("What is Decentralized AI ?", 4)

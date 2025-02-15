@@ -2,30 +2,32 @@ import logging
 import psycopg2.extras
 
 from psycopg2.extensions import cursor
-from typing import List
+from typing import List, Optional
 
 from langchain_core.documents import Document
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from langchain_community.graphs.networkx_graph import NetworkxEntityGraph
 from langchain.prompts import PromptTemplate
 
-from prompts.templates import EXTITY_EXTRACTION_PROMPT_TEMPLATE
+from hector_rag.prompts.templates import EXTITY_EXTRACTION_PROMPT_TEMPLATE
 
-from hector.core.base import BaseRetriever
+from hector_rag.core.base import BaseRetriever
 
 class GraphRetriever(BaseRetriever):
 
-    def __init__(self, cursor: cursor, llm, weight: float):
+    def __init__(
+            self, 
+            llm: any,
+            cursor: Optional[cursor] = None, 
+            **kwargs
+        ):
         
         self.cursor = cursor
         self.llm = llm
         self.llm_transformer = LLMGraphTransformer(llm=llm)
         self.graph = NetworkxEntityGraph()
 
-        self.weight = weight
-
         self.entity_creation_prompt = EXTITY_EXTRACTION_PROMPT_TEMPLATE
-        self.init_tables()
 
     def init_tables(self):
 
@@ -92,9 +94,9 @@ class GraphRetriever(BaseRetriever):
         psycopg2.extras.execute_batch(self.cursor, sql, edges)
         logging.info("All Edges Inserted successfully!")
 
-    def load_graph(self, batch_size: int = 1000):
+    def load(self, batch_size: int = 1000):
 
-
+        logging.info("Graph Data loading started")
         # load nodes 
         self.cursor.execute("SELECT name FROM nodes;")
 
@@ -137,10 +139,9 @@ class GraphRetriever(BaseRetriever):
 
     def get_relevant_documents(self, query: str, document_limit: int):
 
-        document_limit = int( document_limit * self.weight )
-
+        logging.info("Graph search started!")
         question = self.entity_creation_prompt.format(question=query)
-        response = self.llm(question)
+        response = self.llm.invoke(question)
         entities = response.content.split(",")
 
         if len(entities) == 0:
@@ -148,6 +149,8 @@ class GraphRetriever(BaseRetriever):
 
         information_list = sum([self.graph.get_entity_knowledge(entity.strip()) for entity in entities], [])
         documents = [Document(page_content=information) for information in information_list]
+        logging.info("Graph search completed!")
+
         return documents[:document_limit]
     
     def print_graph(self):
