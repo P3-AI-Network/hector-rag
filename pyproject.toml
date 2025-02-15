@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hector_rag"
-version = "0.1.0"
+version = "0.1.1"
 description = "Advance hybrid rag imeplementation using Postgresql Vector DB"
 authors = ["Atmega Buzz <atmegabuzz@gmail.com>"]
 packages = [{include = "hector_rag"}]

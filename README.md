@@ -87,8 +87,8 @@ keyword_retriever = KeywordRetriever()
 
 # Add retrievers to Rag pipeline
 rag.add_retriever(semantic_retriever)
-rag.add_retriever(semantic_retriever)
-rag.add_retriever(semantic_retriever)
+rag.add_retriever(graph_retriever)
+rag.add_retriever(keyword_retriever)
 
 # Fetch documents
 docs = rag.get_relevant_documents("What is  Decentralized AI ?", document_limit=10)
