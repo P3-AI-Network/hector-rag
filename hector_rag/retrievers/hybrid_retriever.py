@@ -53,7 +53,7 @@ class WeightedHybridRetriever(BaseRetriever):
             kw_search_weight: float,
             cursor: Optional[cursor] = None, 
             embeddings: Optional[Embeddings] = None, 
-            embeddings_dimention: Optional[int] = None, 
+            embeddings_dimension: Optional[int] = None, 
             **kwargs
         ):
 
@@ -61,7 +61,7 @@ class WeightedHybridRetriever(BaseRetriever):
         self.semantic_search_weight = semantic_search_weight
         self.kw_search_weight = kw_search_weight
 
-        self.semantic_retriever = SemanticRetriever(cursor, embeddings, embeddings_dimention)
+        self.semantic_retriever = SemanticRetriever(cursor, embeddings, embeddings_dimension)
         self.kw_retriever = KeywordRetriever(cursor, embeddings)
 
     def get_relevant_documents(self, query: str, document_limit: int) -> List[Document]:
