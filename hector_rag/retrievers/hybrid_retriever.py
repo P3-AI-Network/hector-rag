@@ -19,14 +19,14 @@ class RRFHybridRetriever(BaseRetriever, ReciprocralRankFusion):
             self, 
             cursor: Optional[cursor] = None, 
             embeddings: Optional[Embeddings] = None, 
-            embeddings_dimention: Optional[int] = None, 
+            embeddings_dimension: Optional[int] = None, 
             rrf_constant: Optional[int] = 60,
             **kwargs
         ):
 
         self.cursor = cursor
 
-        self.semantic_retriever = SemanticRetriever(cursor, embeddings, embeddings_dimention)
+        self.semantic_retriever = SemanticRetriever(cursor, embeddings, embeddings_dimension)
         self.kw_retriever = KeywordRetriever(cursor, embeddings)
 
         ReciprocralRankFusion.__init__(rrf_constant)

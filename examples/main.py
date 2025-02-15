@@ -1,14 +1,13 @@
 import os
 import logging
-
+import psycopg2
 # from dotenv import load_dotenv
 from hector_rag import Hector
 from hector_rag.retrievers import GraphRetriever, SemanticRetriever, KeywordRetriever
 
 from langchain_openai.embeddings import OpenAIEmbeddings
-from langchain.text_splitter import CharacterTextSplitter
 from langchain_openai import ChatOpenAI
-from langchain.chains.retrieval_qa.base import RetrievalQA
+
 logging.basicConfig(
     level=logging.INFO,  # Set the minimum log level
     format="%(asctime)s - %(levelname)s - %(message)s",  # Log format
@@ -25,7 +24,17 @@ connection = {
         "host":os.getenv("DB_HOST"),
         "port":os.getenv("DB_PORT"),
         "dbname":os.getenv("DB_NAME")
-    }
+}
+
+connection_obj = psycopg2.connect(
+    user=connection['user'],
+    password=connection['password'],
+    host=connection['host'],
+    port=connection['port'],
+    dbname=connection['dbname']
+)
+connection_obj.autocommit = True
+cursor = connection_obj.cursor()
 
 llm = ChatOpenAI(model="gpt-3.5-turbo")
 logging.info("llm")
@@ -40,6 +49,7 @@ sr = SemanticRetriever()
 gr = GraphRetriever(llm=llm)
 
 kw = KeywordRetriever()
+
 
 
 hc.add_retriever(sr)
@@ -60,3 +70,10 @@ while True:
     query = str(input("Enter query: "))
     resp = hc.invoke(llm,query)
     print(resp)
+
+
+# sr = SemanticRetriever(cursor, embeddings, embeddings_dimension=1536, collection_name=collection_name)
+# sr.init_tables()
+# resp = sr.get_relevant_documents("What is Fetch Ai ?", 10)
+
+# print(resp)

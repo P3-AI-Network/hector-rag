@@ -2,3 +2,4 @@
 venv
 assets
 dist
+__pycache__

@@ -20,12 +20,12 @@ A modular and extensible RAG (Retrieval Augmented Generation) package built on P
 
 Using pip:
 ```bash
-pip install hector-rag
+pip install hector_rag
 ```
 
 Using Poetry:
 ```bash
-poetry add hector-rag
+poetry add hector_rag
 ```
 
 ## Requirements
@@ -40,25 +40,21 @@ poetry add hector-rag
 
 ## Quick Start
 
+### Basic Usage - Using 1 pg retriever
+
 ```python
-from hector_rag import HectorRAG
-from hector_rag.retrievers import SimilarityRetriever, KeywordRetriever
+import os
 
-# Initialize Hector RAG
-rag = HectorRAG(
-    connection_string="postgresql://user:password@localhost:5432/db_name"
-)
+from hector_rag import Hector
+from hector_rag.retrievers import SimilarityRetriever, KeywordRetriever, GraphRetriever, RRFHybridRetriever
+from hector_rag import Hector
+from hector_rag.retrievers import GraphRetriever, SemanticRetriever, KeywordRetriever
 
-# Create retrievers
-similarity_retriever = SimilarityRetriever()
-keyword_retriever = KeywordRetriever()
+semantic_retriever = SemanticRetriever(cursor,embeddings,embeddings_dimension=1536,collection_name=collection_name)
+semantic_retriever.init_tables()
+resp = semantic_retriever.get_relevant_documents(query="What is Fetch Ai ?", document_limit=10)
 
-# Add retrievers to pipeline
-rag.add_retriever(similarity_retriever)
-rag.add_retriever(keyword_retriever)
-
-# Perform retrieval
-results = rag.retrieve("Your query here")
+print(resp)
 ```
 
 ## Advanced Usage
@@ -66,24 +62,44 @@ results = rag.retrieve("Your query here")
 ### Combining Multiple Retrievers with RRF
 
 ```python
-from hector_rag import HectorRAG
-from hector_rag.retrievers import SimilarityRetriever, GraphRetriever
-from hector_rag.fusion import ReciprocralRankFusion
+import os
 
-# Initialize retrievers
-retrievers = [
-    SimilarityRetriever(weight=0.4),
-    GraphRetriever(weight=0.6)
-]
+from hector_rag import Hector
+from hector_rag.retrievers import SimilarityRetriever, KeywordRetriever, GraphRetriever, RRFHybridRetriever
+from hector_rag import Hector
+from hector_rag.retrievers import GraphRetriever, SemanticRetriever, KeywordRetriever
 
-# Create fusion pipeline
-rag = HectorRAG(
-    retrievers=retrievers,
-    fusion_method=ReciprocralRankFusion()
-)
+from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 
-# Get fused results
-results = rag.retrieve("Your query here")
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
+llm = ChatOpenAI(model="gpt-3.5-turbo")
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+collection_name = "new_collection_1"
+
+rag = Hector(connection,embeddings, collection_name, {})
+
+# Init all the retrievers that you want to use
+semantic_retriever = SemanticRetriever()
+graph_retriever = GraphRetriever(llm=llm)
+keyword_retriever = KeywordRetriever()
+
+# Add retrievers to Rag pipeline
+rag.add_retriever(semantic_retriever)
+rag.add_retriever(semantic_retriever)
+rag.add_retriever(semantic_retriever)
+
+# Fetch documents
+docs = rag.get_relevant_documents("What is  Decentralized AI ?", document_limit=10)
+
+# Or directly use Hector Invoke to get llm response
+
+while True:
+    query = str(input("Enter query: "))
+    response = rag.invoke(llm,query)
+    print(response)
+
 ```
 
 ## Development

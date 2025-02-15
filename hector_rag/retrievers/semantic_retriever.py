@@ -20,13 +20,13 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
             self, 
             cursor: Optional[cursor] = None, 
             embeddings: Optional[Embeddings] = None, 
-            embeddings_dimention: Optional[int] = None, 
+            embeddings_dimension: Optional[int] = None, 
             collection_name: Optional[str] = None,
             **kwargs    
         ):
         self.cursor = cursor
         self.embeddings = embeddings
-        self.embeddings_dimention = embeddings_dimention
+        self.embeddings_dimension = embeddings_dimension
         self.collection_name = collection_name
 
 
@@ -116,7 +116,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
             );
             CREATE TABLE IF NOT EXISTS langchain_pg_embedding (
                 collection_id UUID NOT NULL,
-                embedding VECTOR({self.embeddings_dimention}),
+                embedding VECTOR({self.embeddings_dimension}),
                 document VARCHAR(1000),
                 cmetadata JSON,
                 custom_id VARCHAR,
