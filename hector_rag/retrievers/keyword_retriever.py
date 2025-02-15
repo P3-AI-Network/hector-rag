@@ -115,7 +115,7 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
             -- Create langchain_pg_embedding if it does not exist
             CREATE TABLE IF NOT EXISTS langchain_pg_embedding (
                 collection_id UUID NOT NULL,
-                embedding VECTOR({self.embeddings_dimention}),
+                embedding VECTOR({self.embeddings_dimension}),
                 document VARCHAR(1000),
                 cmetadata JSON,
                 custom_id VARCHAR,
