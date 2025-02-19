@@ -43,6 +43,8 @@ class Hector:
         retriever.embeddings = self.embeddings
         retriever.embeddings_dimension = self.embedding_dimension
         retriever.collection_uuid = self.collection_uuid
+        retriever.collection_metada = self.collection_metada
+        retriever.collection_name = self.collection_name
         retriever.init_tables()
         retriever.load()
         self.retrievers.append(retriever)

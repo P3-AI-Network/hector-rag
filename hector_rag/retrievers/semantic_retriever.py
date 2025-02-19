@@ -28,6 +28,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
         self.embeddings = embeddings
         self.embeddings_dimension = embeddings_dimension
         self.collection_name = collection_name
+        self.collection_metadata = {}
 
 
     def get_relevant_documents(self, query: str, document_limit: int) -> List[Document]:
@@ -108,6 +109,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
 
 
         create_tables_sql = f"""
+            CREATE EXTENSION IF NOT EXISTS vector;
             CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
             CREATE TABLE IF NOT EXISTS langchain_pg_collection (
                 uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -128,7 +130,8 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
             logging.info("Initial tables created")
 
             self._create_collection()
-        except:
+        except Exception as e:
+            print("DB Error: ", e)
             logging.info("Initial tables already exists")
     
 
@@ -156,7 +159,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
             VALUES (uuid_generate_v4(), %s, %s) RETURNING uuid;
         """
 
-        cmetadata = json.dumps(self.collection_metada)
+        cmetadata = json.dumps(self.collection_metadata)
         self.cursor.execute(sql, (self.collection_name, cmetadata))
         collection_uuid = self.cursor.fetchone()[0]
 

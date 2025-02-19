@@ -103,6 +103,7 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
 
         create_tables_sql = f"""
             BEGIN;
+            CREATE EXTENSION IF NOT EXISTS vector;
             CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
             -- Create langchain_pg_collection if it does not exist
@@ -141,7 +142,8 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
             logging.info("Initial tables created")
 
             self._create_collection()
-        except:
+        except Exception as e:
+            print("DB Error: ", e)
             logging.info("Initial tables already exists")
 
 
@@ -169,7 +171,7 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
             VALUES (uuid_generate_v4(), %s, %s) RETURNING uuid;
         """
 
-        cmetadata = json.dumps(self.collection_metada)
+        cmetadata = json.dumps(self.collection_metadata)
         self.cursor.execute(sql, (self.collection_name, cmetadata))
         collection_uuid = self.cursor.fetchone()[0]
 

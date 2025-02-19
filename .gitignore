@@ -3,3 +3,5 @@ venv
 assets
 dist
 __pycache__
+scrape.py
+output.csv
