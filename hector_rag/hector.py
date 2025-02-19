@@ -11,7 +11,7 @@ from hector_rag.prompts.templates import HECTOR_QNA_PROMPT_TEMPLATE
 
 class Hector:
 
-    def __init__(self, connection: PGConnection, embeddings: Embeddings, collection_name: str, collection_metada: dict) -> None:
+    def __init__(self, connection: PGConnection, embeddings: Embeddings, collection_name: str, collection_metada: dict, document_limit: int = 10) -> None:
 
         self.connection = psycopg2.connect(
             user=connection['user'],
@@ -28,6 +28,7 @@ class Hector:
         self.collection_name = collection_name
         self.collection_metada = collection_metada
         self.collection_uuid = None
+        self.document_limit = document_limit
 
         self.embeddings = embeddings
         self.embedding_dimension = len(embeddings.embed_query("Get Embedding"))
@@ -62,7 +63,7 @@ class Hector:
     
     def invoke(self, llm: any, query: str) -> str:
 
-        docs = self.get_relevant_documents(query)
+        docs = self.get_relevant_documents(query, self.document_limit)
 
         docs_content = ""
 
