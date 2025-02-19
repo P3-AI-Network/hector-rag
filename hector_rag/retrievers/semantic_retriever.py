@@ -119,7 +119,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
             CREATE TABLE IF NOT EXISTS langchain_pg_embedding (
                 collection_id UUID NOT NULL,
                 embedding VECTOR({self.embeddings_dimension}),
-                document VARCHAR(1000),
+                document TEXT NOT NULL,
                 cmetadata JSON,
                 custom_id VARCHAR,
                 uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4()
