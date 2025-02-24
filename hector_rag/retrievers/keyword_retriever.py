@@ -20,11 +20,13 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
             cursor: Optional[cursor] = None, 
             embeddings: Optional[Embeddings] = None, 
             collection_name: Optional[str] = None,
+            indexing: bool = False,
             **kwargs
         ):
         self.cursor = cursor
         self.embeddings = embeddings
         self.collection_name = collection_name
+        self.indexing = indexing
 
     def get_relevant_documents(self, query: str, document_limit: int) -> List[Document]:
         
@@ -60,6 +62,18 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
             WHERE search_vector @@ query
             ORDER BY rank DESC
             LIMIT %s;
+
+            SELECT 
+                documents.id AS doc_id,
+                documents.content AS doc_content,
+                documents.metadata AS doc_metadata,
+                ts_rank_cd(documents.search_vector, plainto_tsquery('english', query)) AS keyword_rank
+            FROM documents, plainto_tsquery(query)
+            WHERE 
+                documents.embedding <=> query_embedding > 0.8 OR
+                documents.search_vector @@ plainto_tsquery('english', query)
+            LIMIT match_count * 2
+
         """
 
         self.cursor.execute(sql, (query,document_limit))
@@ -137,8 +151,18 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
 
             COMMIT;
         """
+
+        indexing_sql = """
+            CREATE INDEX IF NOT EXISTS langchain_pg_embedding_search_idx 
+            ON langchain_pg_embedding USING gin (search_vector);
+        """
         try:
             self.cursor.execute(create_tables_sql)
+            if self.indexing:
+                logging.info("Creating Index! This might take a while depending on your database rows")
+                self.cursor.execute(indexing_sql)
+                logging.info("Index Created")
+
             logging.info("Initial tables created")
 
             self._create_collection()

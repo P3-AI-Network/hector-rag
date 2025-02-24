@@ -22,6 +22,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
             embeddings: Optional[Embeddings] = None, 
             embeddings_dimension: Optional[int] = None, 
             collection_name: Optional[str] = None,
+            indexing: bool = False,
             **kwargs    
         ):
         self.cursor = cursor
@@ -29,6 +30,8 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
         self.embeddings_dimension = embeddings_dimension
         self.collection_name = collection_name
         self.collection_metadata = {}
+
+        self.indexing = indexing
 
 
     def get_relevant_documents(self, query: str, document_limit: int) -> List[Document]:
@@ -125,8 +128,20 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
                 uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4()
             );
         """
+
+        indexing_sql = """
+            CREATE INDEX IF NOT EXISTS langchain_pg_embedding_hnsw 
+            ON langchain_pg_embedding USING hnsw (embedding vector_cosine_ops) 
+            WITH (m = 16, ef_construction = 200);
+        """
+
         try:
             self.cursor.execute(create_tables_sql)
+            if self.indexing:
+                logging.info("Creating Index! This might take a while depending on your database rows")
+                self.cursor.execute(indexing_sql)
+                logging.info("Index Created")
+
             logging.info("Initial tables created")
 
             self._create_collection()

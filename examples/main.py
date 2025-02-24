@@ -26,6 +26,8 @@ connection = {
         "dbname":os.getenv("DB_NAME")
 }
 
+print(connection)
+
 connection_obj = psycopg2.connect(
     user=connection['user'],
     password=connection['password'],
@@ -43,33 +45,35 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
 collection_name = "new_collection_1"
 
-hc = Hector(connection,embeddings, collection_name, {})
-sr = SemanticRetriever()
+hc = Hector(connection,embeddings, collection_name, {}, 1)
+print(hc.embedding_dimension)
+sr = SemanticRetriever(indexing=True)
 
-gr = GraphRetriever(llm=llm)
+# gr = GraphRetriever(llm=llm)
 
-kw = KeywordRetriever()
-
+kw = KeywordRetriever(indexing=True)
 
 
 hc.add_retriever(sr)
 
+# IBM Security Bulletin: Privilege escalation vulnerability affects IBM Db2 Administrative Task Scheduler (CVE-2018-1711). Categorized: High Severity
+# what High Severity vulnerability affects IBM Db2 Administrative Task Scheduler 
 
-hc.add_retriever(gr)
+
+# hc.add_retriever(gr)
 
 
 hc.add_retriever(kw)
 
-
-# docs = hc.get_relevant_documents("What is  Decentralized AI ?", document_limit=10)
+# docs = hc.get_relevant_documents("What is  Decentralized AI ?", document_limit=2)
 
 # print(docs)
 
-while True:
+# while True:
 
-    query = str(input("Enter query: "))
-    resp = hc.invoke(llm,query)
-    print(resp)
+#     query = str(input("Enter query: "))
+#     resp = hc.invoke(llm,query)
+#     print(resp)
 
 
 # sr = SemanticRetriever(cursor, embeddings, embeddings_dimension=1536, collection_name=collection_name)
