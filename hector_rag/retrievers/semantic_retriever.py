@@ -29,6 +29,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
         self.embeddings = embeddings
         self.embeddings_dimension = embeddings_dimension
         self.collection_name = collection_name
+        self.collection_uuid = None
         self.collection_metadata = {}
 
         self.indexing = indexing
@@ -66,6 +67,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
             WITH semantic_search AS (
                 SELECT uuid, document, (1 - (embedding <#> %s::vector)) AS similarity
                 FROM langchain_pg_embedding
+                WHERE collection_id=%s
                 ORDER BY similarity DESC
                 LIMIT %s
             )
@@ -73,7 +75,7 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
         """
 
         single_vector = self.embeddings.embed_query(query)
-        self.cursor.execute(sql, (single_vector,document_limit))
+        self.cursor.execute(sql, (single_vector, self.collection_uuid, document_limit))
 
         results = self.cursor.fetchall()
 
@@ -135,19 +137,35 @@ class SemanticRetriever(BaseRetriever, ReciprocralRankFusion):
             WITH (m = 16, ef_construction = 200);
         """
 
+        # Table Creation
         try:
             self.cursor.execute(create_tables_sql)
-            if self.indexing:
-                logging.info("Creating Index! This might take a while depending on your database rows")
-                self.cursor.execute(indexing_sql)
-                logging.info("Index Created")
-
-            logging.info("Initial tables created")
-
+            logging.info("Semantic Retriever: Initial tables created")
             self._create_collection()
+
         except Exception as e:
             print("DB Error: ", e)
             logging.info("Initial tables already exists")
+
+        # Index Creation
+        try:
+            if self.indexing:
+                logging.info("Semantic Retriever: Creating Index! This might take a while depending on your database rows")
+                self.cursor.execute(indexing_sql)
+                logging.info("Semantic Retriever: Index Created")
+        except Exception as e:
+            print("DB Error: ", e)
+            logging.info("Semantic Retriever: Index Creation Failed")
+        
+        # Fetch Collection ID
+        try:
+            self.cursor.execute("SELECT uuid from langchain_pg_collection WHERE name=%s", (self.collection_name,))
+            result = self.cursor.fetchone()[0]
+            self.collection_uuid = result
+
+        except Exception as e:
+            print("DB Error: ", e)
+            logging.info("Semantic Retriever: Collection does not exists")
     
 
     def _create_collection(self):

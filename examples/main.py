@@ -65,9 +65,9 @@ hc.add_retriever(sr)
 
 hc.add_retriever(kw)
 
-# docs = hc.get_relevant_documents("What is  Decentralized AI ?", document_limit=2)
+docs = hc.get_relevant_documents("What is  Decentralized AI ?", document_limit=2)
 
-# print(docs)
+print(docs)
 
 # while True:
 

@@ -27,7 +27,6 @@ class Hector:
         
         self.collection_name = collection_name
         self.collection_metada = collection_metada
-        self.collection_uuid = None
         self.document_limit = document_limit
 
         self.embeddings = embeddings
@@ -43,7 +42,6 @@ class Hector:
         retriever.cursor = self.cursor
         retriever.embeddings = self.embeddings
         retriever.embeddings_dimension = self.embedding_dimension
-        retriever.collection_uuid = self.collection_uuid
         retriever.collection_metada = self.collection_metada
         retriever.collection_name = self.collection_name
         retriever.init_tables()

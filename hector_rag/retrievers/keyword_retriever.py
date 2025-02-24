@@ -26,6 +26,7 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
         self.cursor = cursor
         self.embeddings = embeddings
         self.collection_name = collection_name
+        self.collection_uuid = None
         self.indexing = indexing
 
     def get_relevant_documents(self, query: str, document_limit: int) -> List[Document]:
@@ -59,24 +60,12 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
         sql = """
             SELECT uuid, document, ts_rank_cd(search_vector, query) AS rank
             FROM langchain_pg_embedding, plainto_tsquery(%s) query
-            WHERE search_vector @@ query
+            WHERE search_vector @@ query AND collection_id=%s
             ORDER BY rank DESC
             LIMIT %s;
-
-            SELECT 
-                documents.id AS doc_id,
-                documents.content AS doc_content,
-                documents.metadata AS doc_metadata,
-                ts_rank_cd(documents.search_vector, plainto_tsquery('english', query)) AS keyword_rank
-            FROM documents, plainto_tsquery(query)
-            WHERE 
-                documents.embedding <=> query_embedding > 0.8 OR
-                documents.search_vector @@ plainto_tsquery('english', query)
-            LIMIT match_count * 2
-
         """
 
-        self.cursor.execute(sql, (query,document_limit))
+        self.cursor.execute(sql, (query, self.collection_uuid ,document_limit))
 
         results = self.cursor.fetchall()
 
@@ -156,19 +145,40 @@ class KeywordRetriever(BaseRetriever, ReciprocralRankFusion):
             CREATE INDEX IF NOT EXISTS langchain_pg_embedding_search_idx 
             ON langchain_pg_embedding USING gin (search_vector);
         """
+    
+        # Table Creation    
         try:
             self.cursor.execute(create_tables_sql)
-            if self.indexing:
-                logging.info("Creating Index! This might take a while depending on your database rows")
-                self.cursor.execute(indexing_sql)
-                logging.info("Index Created")
-
-            logging.info("Initial tables created")
-
+            logging.info("Keyword Retriever: Initial tables created")
             self._create_collection()
+
         except Exception as e:
             print("DB Error: ", e)
-            logging.info("Initial tables already exists")
+            logging.info("Keyword Retriever: Initial tables already exists")
+
+        # Index Creation
+        try:
+            if self.indexing:
+                logging.info("Keyword Retriever: Creating Index! This might take a while depending on your database rows")
+                self.cursor.execute(indexing_sql)
+                logging.info("Keyword Retriever: Index Created FOR ")
+
+        except Exception as e:
+            print("DB Error: ", e)
+            logging.info("Keyword Retriever: Index Creation Failed")
+
+        # Fetch Collection ID
+        try:
+            self.cursor.execute("SELECT uuid from langchain_pg_collection WHERE name=%s", (self.collection_name,))
+            result = self.cursor.fetchone()[0]
+            self.collection_uuid = result
+
+        except Exception as e:
+            print("DB Error: ", e)
+            logging.info("Keyword Retriever: Collection does not exists")
+
+        
+
 
 
     def _create_collection(self):
